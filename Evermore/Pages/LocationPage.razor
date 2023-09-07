@@ -1,0 +1,193 @@
+﻿@page "/campaign/{campaignId}/location/{locationId}"
+@using Evermore.DataModels;
+@using Evermore.Services;
+@inject IJSRuntime js
+
+@attribute [Authorize]
+
+<PageTitle>Location</PageTitle>
+
+<CascadingAuthenticationState>
+    <AuthorizeView>
+        <Authorized>
+            <div class="main">
+                <div class="column-info">
+                    <label class="column-label">Организации <button @onclick='() => runPopupWithType("organization")' class="create-btn">+</button></label>
+                    @foreach (var organization in organizations)
+                    {
+                        var id = organization.Id;
+                        var type = "organization";
+                        <button class="column-info-button" @onclick="() => editAnyItem(id, type)">@organization.Title</button>
+                    }
+                </div>
+                <div class="column-info">
+                    <label class="column-label">Существа <button @onclick='() => runPopupWithType("monster")' class="create-btn">+</button></label>
+                    @foreach (var monster in monsters)
+                    {
+                        var id = monster.Id;
+                        var type = "monster";
+                        <button class="column-info-button" @onclick="() => editAnyItem(id, type)">@monster.Name</button>
+                    }
+                </div>
+                <div class="column-info">
+                    <label class="column-label">Задания <button @onclick='() => runPopupWithType("quest")' class="create-btn">+</button></label>
+                    @foreach (var quest in quests)
+                    {
+                        var id = quest.Id;
+                        var type = "quest";
+                        <button class="column-info-button" @onclick="() => editAnyItem(id, type)">@quest.Title</button>
+                    }
+                </div>
+                <div class="column-data">
+                    @if (isDataOpen)
+                    {
+                        <input @bind="dataLalelBind" class="column-data-input" val />
+                        <textarea @bind="dataTextAreaBind" class="column-data-textarea"></textarea>
+                        <button class="column-info-button" @onclick="() => saveAnyItem()">Сохранить</button>
+                        <button class="column-info-button" @onclick="() => deleteAnyItem()">Удалить</button>
+                    }
+                </div>
+            </div>
+
+            @if (addNewItemPopup)
+            {
+                <div class="popup-overlay">
+                    <div class="popup">
+                        <h2>Новый элемент</h2>
+                        <label>Название:</label>
+                        <input @bind="newItemName" />
+                        <button @onclick="() => addNewItem()">Добавить</button>
+                    </div>
+                </div>
+            }
+        </Authorized>
+    </AuthorizeView>
+</CascadingAuthenticationState>
+
+@code {
+    [Parameter]
+    public string campaignId { get; set; }
+    [Parameter]
+    public string locationId { get; set; }
+
+    private bool isDataOpen = false;
+    private int editItemId;
+    private string editItemType;
+
+    private bool addNewItemPopup = false;
+    private string newItemType;
+    private string newItemName = "";
+
+    // Экземпляр класса для работы с БД
+    private DataBaseService db = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        organizations = db.GetAllOrganizations(Convert.ToInt32(locationId));
+
+        monsters = db.GetAllMonsters(Convert.ToInt32(locationId));
+
+        quests = db.GetAllQuests(Convert.ToInt32(locationId));
+    }
+    private void runPopupWithType(string type)
+    {
+        newItemType = type;
+        addNewItemPopup = true;
+    }
+    private void addNewItem()
+    {
+        if(newItemName.Replace(" ", "").Length <= 3)
+        {
+            js.InvokeVoidAsync("alert", "Поле не заполнено");
+            return;
+        }
+        switch (newItemType)
+        {
+            case "organization":
+                db.AddOrganization(new Organization { LocationId = Convert.ToInt32(locationId), Title = newItemName });
+                organizations = db.GetAllOrganizations(Convert.ToInt32(locationId));
+                break;
+            case "monster":
+                db.AddMonster(new Monster { LocationId = Convert.ToInt32(locationId), Name = newItemName });
+                monsters = db.GetAllMonsters(Convert.ToInt32(locationId));
+                break;
+            case "quest":
+                db.AddQuest(new Quest { LocationId = Convert.ToInt32(locationId), Title = newItemName });
+                quests = db.GetAllQuests(Convert.ToInt32(locationId));
+                break;
+        }    
+        addNewItemPopup = false;
+        newItemName = "";
+    }
+
+    private Location locationData = new Location();
+
+    private string dataLalelBind = "";
+    private string dataTextAreaBind = "";
+
+    public void editAnyItem(int id, string type)
+    {
+        isDataOpen = true;
+        editItemId = id;
+        editItemType = type;
+        switch (type)
+        {
+            case "organization":
+
+                dataLalelBind = organizations.First(e => e.Id == id).Title;
+                dataTextAreaBind = organizations.First(e => e.Id == id).Description;
+                break;
+            case "monster":
+                dataLalelBind = monsters.First(e => e.Id == id).Name;
+                dataTextAreaBind = monsters.First(e => e.Id == id).Description;
+                break;
+            case "quest":
+                dataLalelBind = quests.First(e => e.Id == id).Title;
+                dataTextAreaBind = quests.First(e => e.Id == id).Description;
+                break;
+        }
+    }
+
+    public void saveAnyItem()
+    {
+        switch (editItemType)
+        {
+            case "organization":
+                db.UpdateOrganization(new Organization { Id = editItemId, LocationId = Convert.ToInt32(locationId), Title = dataLalelBind, Description = dataTextAreaBind });
+                organizations = db.GetAllOrganizations(Convert.ToInt32(locationId));
+                break;
+            case "monster":
+                db.UpdateMonster(new Monster { Id = editItemId, LocationId = Convert.ToInt32(locationId), Name = dataLalelBind, Description = dataTextAreaBind });
+                monsters = db.GetAllMonsters(Convert.ToInt32(locationId));
+                break;
+            case "quest":
+                db.UpdateQuest(new Quest { Id = editItemId, LocationId = Convert.ToInt32(locationId), Title = dataLalelBind, Description = dataTextAreaBind });
+                quests = db.GetAllQuests(Convert.ToInt32(locationId));
+                break;
+        }
+    }
+
+    public void deleteAnyItem()
+    {   
+        isDataOpen = false;
+        switch (editItemType)
+        {
+            case "organization":
+                db.DeleteOrganization(editItemId);
+                organizations = db.GetAllOrganizations(Convert.ToInt32(locationId));
+                break;
+            case "monster":
+                db.DeleteMonster(editItemId);
+                monsters = db.GetAllMonsters(Convert.ToInt32(locationId));
+                break;
+            case "quest":
+                db.DeleteQuest(editItemId);
+                quests = db.GetAllQuests(Convert.ToInt32(locationId));
+                break;
+        }
+    }
+
+    public List<Organization> organizations = new List<Organization>();
+    public List<Monster> monsters = new List<Monster>();
+    public List<Quest> quests = new List<Quest>();
+}

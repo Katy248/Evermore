@@ -1,0 +1,404 @@
+﻿@page "/campaign/{campaignId}"
+@using Evermore.DataModels;
+@using Evermore.Services;
+@inject IJSRuntime js
+@inject NavigationManager _nav
+@inherits LayoutComponentBase
+
+<CascadingAuthenticationState>
+    <AuthorizeView>
+        <Authorized>
+            <div class="page">
+                <div class="sidebar">
+                    <div class="nav-scrollable" @onclick="ToggleNavMenu">
+                        <nav class="flex-column">
+                            <div class="nav-item px-3">
+                                <button class="nav-btn" @onclick="@(()=>_nav.NavigateTo(""))">Главное меню</button>
+                            </div>
+                            <div class="nav-item px-3">
+                                <button class="nav-btn" @onclick="() => {showCharactersPage = true; showLocationsPage = false; showNotesPage = false; showDicePage = false;}">Персонажи</button>
+                            </div>
+                            <div class="nav-item px-3">
+                                <button class="nav-btn" @onclick="() => {showCharactersPage = false; showLocationsPage = true; showNotesPage = false; showDicePage = false;}">Локации</button>
+                            </div>
+                            <div class="nav-item px-3">
+                                <button class="nav-btn" @onclick="() => {showCharactersPage = false; showLocationsPage = false; showNotesPage = true; showDicePage = false;}">Заметки</button>
+                            </div>
+                            <div class="nav-item px-3">
+                                <button class="nav-btn" @onclick="() => {showCharactersPage = false; showLocationsPage = false; showNotesPage = false; showDicePage = true;}">Бросок кости</button>
+                            </div>
+                        </nav>
+                    </div>
+                </div>
+                <div class="main-page">
+                    @if (showCharactersPage)
+                    {
+                        <h2 style="text-align: center; color: white">Персонажи</h2>
+                        <navig>
+                            @foreach (var character in characters)
+                            {
+                                var id = character.CharacterId;
+                                <a href="campaign/@campaignId/character/@id">
+                                    <h2>@character.Name</h2>
+                                </a>
+                            }
+                        </navig>
+                        <button class="create-btn" @onclick="() => showNewCharactersPopup = true">Новый персонаж</button>
+                    }
+                    else if (showLocationsPage)
+                    {
+                        <h2 style="text-align: center; color: white">Локации</h2>
+                        <navig>
+                            @foreach (var location in locations)
+                            {
+                                var id = location.Id;
+                                <a href="campaign/@campaignId/location/@id">
+                                    <h2>@location.Name</h2>
+                                </a>
+                            }
+                        </navig>
+                        <button class="create-btn" @onclick="() => showNewLocationsPopup = true">Новая локация</button>
+                    }
+                    else if (showNotesPage)
+                    {
+                        <h2 style="text-align: center; color: white">Заметки</h2>
+                        @foreach (var note in notes)
+                        {
+                            var tempNote = note;
+                            <navig>
+                                <div class="a" style="width: 90%; height: 90%; ">
+                                    <h2>@note.Title</h2>
+                                    <textarea @oninput="eventArgs => UpdateNotesOnInput(eventArgs, note)" class="navig-notes-input">@note.NoteText</textarea>
+                                    <button class="create-btn" @onclick="() => DeleteNote(note)">Удалить заметку</button>
+                                </div>
+                            </navig>
+                        }
+                        <button class="create-btn" @onclick="() => showNewNotesPopup = true">Новая заметка</button>
+                    }
+                    else if (showDicePage)
+                    {
+                        <navig>
+                        <div class="a" style="width: 90%; height: 90%; ">
+                            <label style="text-align: center; color: white" for="diceRollString">Формула броска:</label>
+                            <input id="diceRollString" type="text" @bind="DiceRollString" />
+                            <button class="create-btn" style="margin-left:0px" @onclick="ParseAndRollDice">Бросить кости</button>
+
+                        @if (TotalValue != null)
+                        {
+                            <h4 style="text-align: left; color: white">Результат: @TotalValue</h4>
+                        }
+
+                        @if (RollResults != null)
+                        {
+                            <h4 style="text-align: left; color: white">Кости:</h4>
+                            <ul>
+                                @foreach (var result in RollResults)
+                                {
+                                    <li style="text-align: left; color: white">@result</li>
+                                }
+                            </ul>
+                        }
+                            </div>
+                        </navig>
+                    }
+
+                </div>
+                @if (showNewCharactersPopup)
+                {
+                    <div class="popup-overlay">
+                        <div class="popup">
+                            <h2>Введите имя нового персонажа</h2>
+                            <label>Имя:</label>
+                            <input type="text" @bind="newCharacter.Name" />
+                            <button @onclick="Save">Добавить персонажа</button>
+                            @if (inputError)
+                            {
+                                <div class="alert">
+                                    <span class="closebtn" @onclick="() => inputError = false">&times;</span>
+                                    Ошибка в имени.
+                                </div>
+                            }
+
+                        </div>
+                    </div>
+                }
+                @if (showNewLocationsPopup)
+                {
+                    <div class="popup-overlay">
+                        <div class="popup">
+                            <h2>Введите название новой локации</h2>
+                            <label>Название:</label>
+                            <input type="text" @bind="newLocation.Name" />
+                            <button @onclick="Save">Добавить локацию</button>
+                            @if (inputError)
+                            {
+                                <div class="alert">
+                                    <span class="closebtn" @onclick="() => inputError = false">&times;</span>
+                                    Ошибка в названии.
+                                </div>
+                            }
+
+                        </div>
+                    </div>
+                }
+                @if (showNewNotesPopup) {
+                    <div class="popup-overlay">
+                        <div class="popup">
+                            <h2>Введите название новой заметки</h2>
+                            <label>Название:</label>
+                            <input type="text" @bind="newNote.Title" />
+                            <button @onclick="Save">Добавить заметку</button>
+                            @if (inputError)
+                            {
+                                <div class="alert">
+                                    <span class="closebtn" @onclick="() => inputError = false">&times;</span>
+                                    Ошибка в названии.
+                                </div>
+                            }
+
+                        </div>
+                    </div>
+                }
+            </div>
+        </Authorized>
+    </AuthorizeView>
+</CascadingAuthenticationState>
+
+
+@code {
+    // id текущего мира
+    [Parameter]
+    public string campaignId { get; set; }
+
+    // Переменные для определения текущего экрана
+    private bool showCharactersPage = true;
+    private bool showLocationsPage = false;
+    private bool showNotesPage = false;
+    private bool showDicePage = false;
+
+    // Переменные, необходимые для добавления и изменения списка персонажей, локаций или заметок
+    private bool showNewCharactersPopup = false;
+    private bool showNewLocationsPopup = false;
+    private bool showNewNotesPopup = false;
+
+    private bool inputError = false;
+
+    // Переменная для хранения информации о новом персонаже
+    private dbCharacterData newCharacter = new dbCharacterData();
+
+    // Переменная для хранения информации о новой локации
+    private Location newLocation = new Location();
+
+    // Переменная для хранения информации о новой заметки
+    private Note newNote = new Note();
+
+    // Экземпляр класса для работы с БД
+    private DataBaseService db = new();
+
+    // Список со всеми персонажами
+    private List<dbCharacterData> characters = new List<dbCharacterData>();
+
+    // Список со всеми заметками
+    private List<Note> notes = new List<Note>();
+
+    // Вызывается при загрузке страницы, получает всю необходимую информацию из БД
+    protected override async Task OnInitializedAsync()
+    {
+        characters = db.GetAllCharacters(Convert.ToInt32(campaignId));
+
+        locations = db.GetAllLocations(Convert.ToInt32(campaignId));
+
+        notes = db.GetNotes(Convert.ToInt32(campaignId));
+    }
+
+    // Список со всеми локациями
+    private List<Location> locations = new List<Location>();
+
+    // Функция для сохранения нового персонажа, локации или заметки
+    private void Save()
+    {
+        if (showNewCharactersPopup)
+        {
+            if (newCharacter.Name == null) return;
+            if(newCharacter.Name.Replace(" ", "").Length <= 3)
+            {
+                js.InvokeVoidAsync("alert", "Поле не заполнено");
+                return;
+            }
+            newCharacter.CampaignId = Convert.ToInt32(campaignId);
+            db.AddCharacter(newCharacter);
+            characters = db.GetAllCharacters(Convert.ToInt32(campaignId));
+            newCharacter = new dbCharacterData();
+            showNewCharactersPopup = false;
+        }
+        else if (showNewLocationsPopup)
+        {
+            if (newLocation.Name == null) return;
+            if (newLocation.Name.Replace(" ", "").Length <= 3)
+            {
+                js.InvokeVoidAsync("alert", "Поле не заполнено");
+                return;
+            }
+            newLocation.CampaignId = Convert.ToInt32(campaignId);
+            db.AddLocation(newLocation);
+            locations = db.GetAllLocations(Convert.ToInt32(campaignId));
+            newLocation = new Location();
+            showNewLocationsPopup = false;
+        }
+        else if (showNewNotesPopup)
+        {
+            if (newNote.Title == null) return;
+            if (newNote.Title.Replace(" ", "").Length <= 3)
+            {
+                js.InvokeVoidAsync("alert", "Поле не заполнено");
+                return;
+            }
+            newNote.CampaignId = Convert.ToInt32(campaignId);
+            db.AddNewNote(newNote);
+            notes = db.GetNotes(Convert.ToInt32(campaignId));
+            newNote = new Note();
+            showNewNotesPopup = false;
+        }
+    }
+
+    private void DeleteNote(Note note)
+    {
+        db.DeleteNote(note);
+        notes = db.GetNotes(Convert.ToInt32(campaignId));
+    }
+    // Функция обновления значения заметки в БД при вводе информации в заметку
+    private void UpdateNotesOnInput(ChangeEventArgs args, Note note)
+    {
+        string textareaValue = args.Value.ToString();
+        note.NoteText = textareaValue;
+        db.UpdateNote(note);
+    }
+
+    private int DiceCount { get; set; } = 1;
+    private int SelectedDiceType { get; set; } = 7;
+    private List<int> RollResults { get; set; }
+
+    private string DiceRollString { get; set; }
+    private int? TotalValue { get; set; }
+
+    private void ParseAndRollDice()
+    {
+        TotalValue = ParseDiceRollString(DiceRollString);
+        if (TotalValue == int.MinValue)
+        {
+            RollResults = new List<int>();
+            TotalValue = 0;
+        }
+        
+    }
+
+    private int ParseDiceRollString(string rollString)
+    {
+        if (rollString == null)
+        {
+            js.InvokeVoidAsync("alert", "Строка пустая");
+            return int.MinValue;
+        }
+        int total = 0;
+        string[] rolls = rollString.Split(new char[] { '+', '-' });
+        Random random = new Random();
+
+        if(rollString[0] == '-')
+        {
+            var temp = new List<string>(rolls);
+            temp.RemoveAt(0);
+            rolls = temp.ToArray();
+        }
+        else
+        {
+            rollString = rollString.Insert(0, "+");
+        }
+
+        RollResults = new List<int>();
+
+        for (int i = 0; i < rolls.Length; i++)
+        {
+            string roll = rolls[i].Trim();
+            int dIndex = roll.IndexOf('к');
+
+            if (dIndex >= 0)
+            {
+                int numDice;
+
+                bool success = int.TryParse(roll.Substring(0, dIndex), out numDice);
+                if (!success)
+                {
+                    numDice = 1;
+                }
+                else if (numDice > 1000)
+                {
+                    js.InvokeVoidAsync("alert", "Количество костей не может быть больше 1000");
+                    return int.MinValue;
+                }
+
+                int numFaces;
+                success = int.TryParse(roll.Substring(dIndex + 1), out numFaces);
+                if (!success)
+                {
+                    js.InvokeVoidAsync("alert", "Ошибка в типе кости");
+                    return int.MinValue;
+                }
+                if (numFaces > 10000)
+                {
+                    js.InvokeVoidAsync("alert", "Количество граней не может быть больше 10000");
+                    return int.MinValue;
+                }
+
+                int rollValue = 0;
+                string checkRollString = rollString.Trim();
+                for (int j = 0; j < numDice; j++)
+                {
+                    rollValue = random.Next(1, numFaces + 1);
+                    RollResults.Add(rollValue);
+                    if (checkRollString[checkRollString.IndexOf(rolls[i]) - 1] == '+')
+                    {
+                        total += rollValue;
+
+                    }
+                    else if (checkRollString[checkRollString.IndexOf(rolls[i]) - 1] == '-')
+                    {
+                        total -= rollValue;
+                    }
+                }
+            }
+            else
+            {
+                int value;
+                bool success = int.TryParse(roll, out value);
+                string checkRollString = rollString.Trim();
+                if (success)
+                {
+                    if (checkRollString[checkRollString.IndexOf(rolls[i]) - 1] == '+')
+                    {
+                        total += value;
+                    }
+                    else if (checkRollString[checkRollString.IndexOf(rolls[i]) - 1] == '-')
+                    {
+                        total -= value;
+                    }
+                }
+                else
+                {
+                    js.InvokeVoidAsync("alert", "Неправильные символы в строке");
+                    return int.MinValue;
+                }
+            }
+        }
+
+        return total;
+    }
+
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}

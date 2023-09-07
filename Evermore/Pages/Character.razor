@@ -1,0 +1,521 @@
+﻿@page "/campaign/{campaignId}/character/{characterId}"
+@using Evermore.DataModels;
+@using Evermore.Services;
+@inject NavigationManager navigationManager
+@inject IJSRuntime js
+
+@attribute [Authorize]
+
+<PageTitle>Character</PageTitle>
+
+<CascadingAuthenticationState>
+    <AuthorizeView>
+        <Authorized>
+            <div class="topbar-info">
+                <button class="add-table-row-btn" style="margin-right: 10px" @onclick="() => saveCharacter()">Назад</button>
+                <div class="topbar-container">
+                    <input class="topbar-input" placeholder="Имя персонажа" @bind="character.Name" />
+                    <input class="topbar-input" placeholder="Имя игрока" @bind="character.PlayerName" />
+                </div>
+
+                <div class="topbar-container">
+                    <input class="topbar-input" placeholder="Класс" @bind="character.Class" />
+                    <input class="topbar-input" placeholder="Раса" @bind="character.Race" />
+                </div>
+
+                <div class="topbar-container">
+                    <input class="topbar-input" placeholder="Уровень" @bind="character.Level" />
+                    <input class="topbar-input" placeholder="Опыт" @bind="character.Experience" />
+                </div>
+
+                <div class="topbar-container">
+                    <label class="label-hp">Хиты</label>
+                    <div class="inputs">
+                        <input type="number" class="input" placeholder="10" max="999" @bind="character.CurrentHp" />
+                        <input type="number" class="input" placeholder="10" max="999" @bind="character.MaxHp" />
+                    </div>
+                    <div class="inputs">
+                        <input type="number" class="second-container-input" placeholder="+Врем." max="999" @bind="character.TemporaryHp" />
+                        <input type="number" class="second-container-input" placeholder="+Макс." max="999" @bind="character.MaxTemporaryHp" />
+                    </div>
+                </div>
+                <div class="topbar-container">
+                    <label class="label-hp">Класс Доспеха</label>
+                    <div class="inputs">
+                        <input type="number" class="input" placeholder="1" max="999" @bind="character.ArmorClass" />
+                    </div>
+                    <div class="inputs">
+                        <input type="number" class="second-container-input" placeholder="Сл заклинания" maxlength="100" @bind="character.SpellDifficulty" />
+                    </div>
+                </div>
+
+                <div class="topbar-container">
+                    <label class="label-hp">Перемещение</label>
+                    <div class="inputs">
+                        <input type="number" class="input" placeholder="1" max="999" @bind="character.Movement" />
+                    </div>
+                </div>
+                <button class="add-table-row-btn" style="margin-left: 10px" @onclick="() => DeleteCharacter()">Удалить персонажа</button>
+            </div>
+            <div class="page">
+                <div class="characteristics-info-column">
+                    <label class="label-hp">Показатели</label>
+                    <div class="div-row">
+                        <div class="characteristics-container">
+                            <label class="label-hp">Сила</label>
+                            <input type="number" class="input" placeholder="10" max="999" @bind="characterCharacteristics.StrengthValue" />
+                        </div>
+                        <div class="skills-container">
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="characterCharacteristics.StrengthProficient" />
+                                <label class="label-hp">Спасбросок</label>
+                            </div>
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="skillsProficiency.Athletics" />
+                                <label class="label-hp">Атлетика</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="div-row">
+                        <div class="characteristics-container">
+                            <label class="label-hp">Ловкость</label>
+                            <input type="number" class="input" placeholder="10" max="999" @bind="characterCharacteristics.DexterityValue" />
+                        </div>
+                        <div class="skills-container">
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="characterCharacteristics.DexterityProficient" />
+                                <label class="skills-input">Спасбросок</label>
+                            </div>
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="skillsProficiency.Acrobatics" />
+                                <label class="skills-input">Акробатика</label>
+                            </div>
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="skillsProficiency.SleightofHand" />
+                                <label class="skills-input">Ловкость рук</label>
+                            </div>
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="skillsProficiency.Stealth" />
+                                <label class="skills-input">Скрытность</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="div-row">
+                        <div class="characteristics-container">
+                            <label class="label-hp">Телосложение</label>
+                            <input type="number" class="input" placeholder="10" max="999" @bind="characterCharacteristics.ConstitutionValue" />
+                        </div>
+                        <div class="skills-container">
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="characterCharacteristics.ConstitutionProficient" />
+                                <label class="label-hp">Спасбросок</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="div-row">
+                        <div class="characteristics-container">
+                            <label class="label-hp">Интеллект</label>
+                            <input type="number" class="input" placeholder="10" max="999" @bind="characterCharacteristics.IntelligenceValue" />
+                        </div>
+                        <div class="skills-container">
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="characterCharacteristics.IntelligenceProficient" />
+                                <label class="label-hp">Спасбросок</label>
+                            </div>
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="skillsProficiency.Arcana" />
+                                <label class="skills-input">Магия</label>
+                            </div>
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="skillsProficiency.History" />
+                                <label class="skills-input">История</label>
+                            </div>
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="skillsProficiency.Investigation" />
+                                <label class="skills-input">Анализ</label>
+                            </div>
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="skillsProficiency.Nature" />
+                                <label class="skills-input">Природа</label>
+                            </div>
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="skillsProficiency.Religion" />
+                                <label class="skills-input">Религия</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="div-row">
+                        <div class="characteristics-container">
+                            <label class="label-hp">Мудрость</label>
+                            <input type="number" class="input" placeholder="10" max="999" @bind="characterCharacteristics.WisdomValue" />
+                        </div>
+                        <div class="skills-container">
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="characterCharacteristics.WisdomProficient" />
+                                <label class="label-hp">Спасбросок</label>
+                            </div>
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="skillsProficiency.AnimalHandling" />
+                                <label class="skills-input">Уход за животными</label>
+                            </div>
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="skillsProficiency.Insight" />
+                                <label class="skills-input">Проницательность</label>
+                            </div>
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="skillsProficiency.Medicine" />
+                                <label class="skills-input">Медицина</label>
+                            </div>
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="skillsProficiency.Perception" />
+                                <label class="skills-input">Внимательность</label>
+                            </div>
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="skillsProficiency.Survival" />
+                                <label class="skills-input">Выживание</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="div-row">
+                        <div class="characteristics-container">
+                            <label class="label-hp">Харизма</label>
+                            <input type="number" class="input" placeholder="10" max="999" @bind="characterCharacteristics.CharismaValue" />
+                        </div>
+                        <div class="skills-container">
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="characterCharacteristics.CharismaProficient" />
+                                <label class="label-hp">Спасбросок</label>
+                            </div>
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="skillsProficiency.Deception" />
+                                <label class="skills-input">Обман</label>
+                            </div>
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="skillsProficiency.Intimidation" />
+                                <label class="skills-input">Запугивание</label>
+                            </div>
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="skillsProficiency.Performance" />
+                                <label class="skills-input">Выступление</label>
+                            </div>
+                            <div class="div-row">
+                                <input type="checkbox" class="skills-checkbox" @bind="skillsProficiency.Persuasion" />
+                                <label class="skills-input">Убеждение</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="second-info-column">
+                    <label class="label-hp">Снаряжение</label>
+                    <table class="equipment-info-table" style="width: 99%; margin-top: 10px">
+                        <tr style="color: white; font-size: 20px; text-align: center;">
+                            <td>Название</td>
+                            <td>Тип</td>
+                            <td>Вес</td>
+                            <td>Кол-во</td>
+                            <td>Используется <button class="add-table-row-btn" @onclick="() => showEquipmentPopup = true">+Доб</button></td>
+                        </tr>
+                        @foreach (var item in equipmentItems)
+                        {
+                            var id = item.Id;
+                            <tr style="color: white; font-size: 16px;" @onclick="() => {updateItemId = id; openEditEquipmentItem(id);} ">
+                                <td><input class="second-container-input" value="@item.Name" readonly="readonly"></td>
+                                <td><input class="second-container-input" value="@item.Type" readonly="readonly"></td>
+                                <td><input class="second-container-input" value="@Convert.ToString(item.Weight) фнт" readonly="readonly"></td>
+                                <td><input class="second-container-input" value="@Convert.ToString(item.Amount)" readonly="readonly"></td>
+                                <td><input class="second-container-input" value="@Convert.ToString(item.IsUsed)" readonly="readonly"></td>
+                            </tr>
+                        }
+                    </table>
+
+                    <label class="label-hp" style="margin-top: 10px">Способности</label>
+                    <table class="equipment-info-table" style="width: 99%">
+                        <tr style="color: white; font-size: 20px; text-align: center;">
+                            <td>Название</td>
+                            <td>Тип</td>
+                            <td>Использование <input type="button" class="add-table-row-btn" @onclick="() => showAbilitiesPopup = true" value="+Доб" /></td>
+                        </tr>
+                        @foreach (var ability in abilities)
+                        {
+                            var id = ability.Id;
+                            <tr style="color: white; font-size: 16px;" @onclick="() => {updateAbilitiesId = id; openEditAbility(id);} ">
+                                <td><input class="second-container-input" value="@ability.Name"></td>
+                                <td><input class="second-container-input" value="@ability.Type"></td>
+                                <td><input class="second-container-input" value="@ability.Activation"></td>
+                            </tr>
+                        }
+                    </table>
+
+                    <label class="label-hp" style="margin-top: 10px">Заклинания</label>
+                    <table class="equipment-info-table" style="width: 99%">
+                        <tr style="color: white; font-size: 20px; text-align: center;">
+                            <td>Название</td>
+                            <td>Уровень</td>
+                            <td>Сотворение</td>
+                            <td>Цель <input type="button" class="add-table-row-btn" @onclick="() => showSpellsPopup = true" value="+Доб" /></td>
+                        </tr>
+                        @foreach (var spell in spells)
+                        {
+                            var id = spell.Id;
+                            <tr style="color: white; font-size: 16px;" @onclick="() => {updateSpellsIndex = id; openEditSpell(id);} ">
+                                <td><input class="second-container-input" value="@spell.Name"></td>
+                                <td><input class="second-container-input" value="@Convert.ToString(spell.SpellLevel == 0 ? "Заговор" : spell.SpellLevel)"></td>
+                                <td><input class="second-container-input" value="@spell.ActivationType"></td>
+                                <td><input class="second-container-input" value="@spell.Target"></td>
+                            </tr>
+                        }
+                    </table>
+                </div>
+
+                @if (showEquipmentPopup)
+                {
+                    <div class="popup-overlay">
+                        <div class="popup">
+                            <h2>Новый предмет</h2>
+                            <label>Название:</label>
+                            <input @bind="newItem.Name" />
+                            <label>Описание:</label>
+                            <input style="height: 100px" @bind="newItem.Description" />
+                            <label>Тип:</label>
+                            <input @bind="newItem.Type" />
+                            <label>Урон:</label>
+                            <input @bind="newItem.Damage" />
+                            <label>Используется:<input type="checkbox" @bind="newItem.IsUsed"></label>
+                            <label>Количество:</label>
+                            <input type="number" @bind="newItem.Amount" />
+                            <label>Вес:</label>
+                            <input type="number" @bind="newItem.Weight" />
+                            <label>Цена:</label>
+                            <input type="number" @bind="newItem.Price" />
+                            <button @onclick="addOrEditEquipmentItem">Добавить</button>
+                        </div>
+                    </div>
+                }
+
+                @if (showAbilitiesPopup)
+                {
+                    <div class="popup-overlay">
+                        <div class="popup">
+                            <h2>Новая способность</h2>
+                            <label>Название:</label>
+                            <input @bind="newAbility.Name" />
+                            <label>Описание:</label>
+                            <input style="height: 100px" @bind="newAbility.Description" />
+                            <label>Тип:</label>
+                            <input @bind="newAbility.Type" />
+                            <label>Использование:</label>
+                            <input @bind="newAbility.Activation" />
+                            <button @onclick="addOrEditAbilityItem">Добавить</button>
+                        </div>
+                    </div>
+                }
+
+                @if (showSpellsPopup)
+                {
+                    <div class="popup-overlay">
+                        <div class="popup">
+                            <h2>Новая способность</h2>
+                            <label>Название:</label>
+                            <input @bind="newSpell.Name" />
+                            <label>Описание:</label>
+                            <input style="height: 100px" @bind="newSpell.Description" />
+                            <label>Уровень:</label>
+                            <input type="number" @bind="newSpell.SpellLevel" />
+                            <label>Сотворение:</label>
+                            <input @bind="newSpell.ActivationType" />
+                            <label>Цель:</label>
+                            <input @bind="newSpell.Target" />
+                            <button @onclick="addOrEditNewSpellItem">Добавить</button>
+                        </div>
+                    </div>
+                }
+
+                <div class="third-info-column">
+                    <label class="label-hp" style="margin-top: 10px">Внешность</label>
+                    <textarea class="third-column-input" style="height: 100px" @bind="character.Appearance" />
+
+                    <label class="label-hp" style="margin-top: 10px">Черты характера</label>
+                    <textarea class="third-column-input" style="height: 100px" @bind="character.CharacterTraits" />
+
+                    <label class="label-hp" style="margin-top: 10px">Привязанности</label>
+                    <textarea class="third-column-input" style="height: 100px" @bind="character.Ideals" />
+
+                    <label class="label-hp" style="margin-top: 10px">Слабости</label>
+                    <textarea class="third-column-input" style="height: 100px" @bind="character.Weaknesses" />
+
+                    <label class="label-hp" style="margin-top: 10px">Прочие владения и языки</label>
+                    <textarea class="third-column-input" style="height: 100px" @bind="character.DomainsAndLanguages" />
+                </div>
+
+            </div>
+        </Authorized>
+    </AuthorizeView>
+</CascadingAuthenticationState>
+
+@code {
+    // id текущего мира
+    [Parameter]
+    public string campaignId { get; set; }
+
+    // id текущего персонажа
+    [Parameter]
+    public string characterId { get; set; }
+
+    // Переменные, необходимые для добавления и изменения предметов экипировки персонажа
+    private bool showEquipmentPopup = false;
+    private int updateItemId;
+    private bool isUpdateEquiment = false;
+
+    // Переменные, необходимые для добавления и изменения способностей персонажа
+    private bool showAbilitiesPopup = false;
+    private int updateAbilitiesId;
+    private bool isUpdateAbilities = false;
+
+    // Переменные, необходимые для добавления и изменения заклинаний персонажа
+    private bool showSpellsPopup = false;
+    private int updateSpellsIndex;
+    private bool isUpdateSpells = false;
+
+    // Переменные для хранения персонажа, его характеристик и навыков
+    private dbCharacterData character = new();
+    private Characteristics characterCharacteristics;
+    private SkillsProficiency skillsProficiency;
+
+    // Переменные для предметов, способностей и заклинаний персонажа
+    private Item newItem = new Item();
+    private Ability newAbility = new Ability();
+    private Spell newSpell = new Spell();
+
+    // Экземпляр класса для работы с БД
+    private DataBaseService db = new();
+
+    // Вызывается при загрузке страницы, получает всю необходимую информацию из БД
+    protected override async Task OnInitializedAsync()
+    {
+        character = db.GetCharacterById(Convert.ToInt32(characterId));
+        characterCharacteristics = character.Characteristics;
+        skillsProficiency = character.Skills;
+
+        equipmentItems = db.GetItems(Convert.ToInt32(characterId));
+
+        abilities = db.GetAbilities(Convert.ToInt32(characterId));
+
+        spells = db.GetSpells(Convert.ToInt32(characterId));
+    }
+
+    // Функция сохранения персонажа
+    private void saveCharacter()
+    {
+        try
+        {
+            character.Characteristics = characterCharacteristics;
+            character.Skills = skillsProficiency;
+            db.UpdateCharacter(character);
+            navigationManager.NavigateTo($"/campaign/{campaignId}");
+        }
+        catch (Exception)
+        {
+            js.InvokeVoidAsync("alert", "Ошибка в заполнении персонажа");
+        }
+
+    }
+
+    private void DeleteCharacter()
+    {
+        db.DeleteCharacter(Convert.ToInt32(characterId));
+        navigationManager.NavigateTo($"/campaign/{campaignId}");
+    }
+
+    // Функция для добавления или изменения предмета
+    private void addOrEditEquipmentItem()
+    {
+        if(isUpdateEquiment == false)
+        {
+            newItem.CharacterId = Convert.ToInt32(characterId);
+            db.AddItem(newItem);
+            equipmentItems = db.GetItems(Convert.ToInt32(characterId));
+        }
+
+        else if (isUpdateEquiment == true)
+        {
+            db.UpdateItem(newItem);
+            equipmentItems = db.GetItems(Convert.ToInt32(characterId));
+            isUpdateEquiment = false;
+
+        }
+        //db.addNewEquipmentItem(newItem)
+        showEquipmentPopup = false;
+        newItem = new Item();
+    }
+
+    // Функция для открытия всплывающего окна для изменения предмета
+    private void openEditEquipmentItem(int id)
+    {
+        showEquipmentPopup = true;
+        isUpdateEquiment = true;
+        newItem = equipmentItems.First(x => x.Id == id);
+    }
+
+    // Функция для добавления или изменения способности
+    private void addOrEditAbilityItem()
+    {
+
+        if(isUpdateAbilities == false)
+        {
+            newAbility.CharacterId = Convert.ToInt32(characterId);
+            db.AddAbility(newAbility);
+            abilities = db.GetAbilities(Convert.ToInt32(characterId));
+        }
+        else
+        {
+            db.UpdateAbility(newAbility);
+            abilities = db.GetAbilities(Convert.ToInt32(characterId));
+            isUpdateAbilities = false;
+        }
+        showAbilitiesPopup = false;
+        newAbility = new Ability();
+    }
+
+    // Функция для открытия всплывающего окна для изменения способности
+    private void openEditAbility(int id)
+    {
+        showAbilitiesPopup = true;
+        isUpdateAbilities = true;
+        newAbility = abilities.First(x => x.Id == id);
+    }
+
+    // Функция для добавления или изменения заклинания
+    private void addOrEditNewSpellItem()
+    {
+        if(isUpdateSpells == false)
+        {
+            newSpell.CharacterId = Convert.ToInt32(characterId);
+            db.AddSpell(newSpell);
+            spells = db.GetSpells(Convert.ToInt32(characterId));
+        }
+        else
+        {
+            db.UpdateSpell(newSpell);
+            spells = db.GetSpells(Convert.ToInt32(characterId));
+            isUpdateSpells = false;
+        }
+        showSpellsPopup = false;
+        newSpell = new Spell();
+    }
+
+    // Функция для открытия всплывающего окна для изменения заклинания
+    private void openEditSpell(int id)
+    {
+        showSpellsPopup = true;
+        isUpdateSpells = true;
+        newSpell = spells.First(x => x.Id == id);
+    }
+
+    // Списки для хранения предметов, способностей и заклинаний
+    List<Item> equipmentItems = new List<Item>();
+    List<Ability> abilities = new List<Ability>();
+    List<Spell> spells = new List<Spell>();
+
+
+
+}
