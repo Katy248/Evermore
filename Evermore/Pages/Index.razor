@@ -1,6 +1,4 @@
 ﻿@page "/"
-@using Evermore.DataModels;
-@using Evermore.Services;
 @using System.Security.Claims;
 @inject IHttpContextAccessor HttpContextAccessor
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -13,6 +11,7 @@
     <title>Navigation Menu</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <CascadingAuthenticationState>
         <AuthorizeView>
@@ -55,10 +54,11 @@
     private bool showCreatePopup;
     private bool inputError;
     // Список всех миров
-    private List<CampaignData> campaigns = new List<CampaignData>();
+    private IEnumerable<Models.Campaign> campaigns = new List<Models.Campaign>();
 
     // Экземпляр класса для работы с БД
-    private DataBaseService db = new();
+    [Inject]
+    public DataBaseService db { get; }
 
     // Вызывается при загрузке страницы, получает информацию о мирах из БД
     protected override async Task OnInitializedAsync()
@@ -68,29 +68,29 @@
         if (user.Identity.IsAuthenticated)
         {
             var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            campaigns = db.GetAllCampaigns(Convert.ToInt32(userId));
+            campaigns = db.GetAllCampaigns(new UserId(Guid.Parse(userId)));
         }
     }
 
     // Переменная для хранения информации о новом мире
-    private CampaignData newItem = new CampaignData();
+    private Models.Campaign newItem = new Models.Campaign();
 
     // Сохраняет новый мир в БД
     private async Task Save()
     {
         if (newItem.Title == null || newItem.Title.Replace(" ", "").Length <= 3)
         {
-            js.InvokeVoidAsync("alert", "Ошибка в названии");
+            await js.InvokeVoidAsync("alert", "Ошибка в названии");
             return;
         }
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        newItem.UserId = Convert.ToInt32(userId);
+        newItem.UserId = new UserId(Guid.Parse(userId));
         db.AddNewCampaign(newItem);
 
-        campaigns = db.GetAllCampaigns(Convert.ToInt32(userId));
-        newItem = new CampaignData();
+        campaigns = db.GetAllCampaigns(newItem.UserId);
+        newItem = new Models.Campaign();
         showCreatePopup = false;
         inputError = false;
     }

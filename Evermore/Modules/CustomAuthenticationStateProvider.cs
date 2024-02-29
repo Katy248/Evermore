@@ -1,4 +1,4 @@
-﻿using Evermore.DataModels;
+﻿using Evermore.Models;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using System.Security.Claims;
@@ -30,7 +30,7 @@ namespace Evermore.Modules
                 }, "CustomAuth"));
                 return await Task.FromResult(new AuthenticationState(claimsPrincipal));
             }
-            catch 
+            catch
             {
                 return await Task.FromResult(new AuthenticationState(_anonymous));
             }
@@ -40,7 +40,7 @@ namespace Evermore.Modules
         {
             ClaimsPrincipal claimsPrincipal;
 
-            if(userSession != null)
+            if (userSession != null)
             {
                 await _sessionStorage.SetAsync("UserSession", userSession);
                 claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new List<Claim>

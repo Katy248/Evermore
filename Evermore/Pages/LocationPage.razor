@@ -1,9 +1,9 @@
-﻿@page "/campaign/{campaignId}/location/{locationId}"
-@using Evermore.DataModels;
-@using Evermore.Services;
-@inject IJSRuntime js
+﻿@page "/campaign/{CampaignId}/location/{LocationId}"
+@using Evermore.Models;
+@using Evermore.Services
+@inject IJSRuntime js;
+@attribute [Authorize];
 
-@attribute [Authorize]
 
 <PageTitle>Location</PageTitle>
 
@@ -12,16 +12,19 @@
         <Authorized>
             <div class="main">
                 <div class="column-info">
-                    <label class="column-label">Организации <button @onclick='() => runPopupWithType("organization")' class="create-btn">+</button></label>
+                    <label class="column-label">Организации <button @onclick='() => runPopupWithType("organization")'
+                            class="create-btn">+</button></label>
                     @foreach (var organization in organizations)
                     {
                         var id = organization.Id;
                         var type = "organization";
-                        <button class="column-info-button" @onclick="() => editAnyItem(id, type)">@organization.Title</button>
+                        <button class="column-info-button"
+                            @onclick="() => editAnyItem(id, type)">@organization.Title</button>
                     }
                 </div>
                 <div class="column-info">
-                    <label class="column-label">Существа <button @onclick='() => runPopupWithType("monster")' class="create-btn">+</button></label>
+                    <label class="column-label">Существа <button @onclick='() => runPopupWithType("monster")'
+                            class="create-btn">+</button></label>
                     @foreach (var monster in monsters)
                     {
                         var id = monster.Id;
@@ -30,7 +33,8 @@
                     }
                 </div>
                 <div class="column-info">
-                    <label class="column-label">Задания <button @onclick='() => runPopupWithType("quest")' class="create-btn">+</button></label>
+                    <label class="column-label">Задания <button @onclick='() => runPopupWithType("quest")'
+                            class="create-btn">+</button></label>
                     @foreach (var quest in quests)
                     {
                         var id = quest.Id;
@@ -43,8 +47,8 @@
                     {
                         <input @bind="dataLalelBind" class="column-data-input" val />
                         <textarea @bind="dataTextAreaBind" class="column-data-textarea"></textarea>
-                        <button class="column-info-button" @onclick="() => saveAnyItem()">Сохранить</button>
-                        <button class="column-info-button" @onclick="() => deleteAnyItem()">Удалить</button>
+                        <button class="column-info-button" @onclick="() => SaveAnyItem()">Сохранить</button>
+                        <button class="column-info-button" @onclick="() => DeleteAnyItem()">Удалить</button>
                     }
                 </div>
             </div>
@@ -66,9 +70,9 @@
 
 @code {
     [Parameter]
-    public string campaignId { get; set; }
+    public CampaignId CampaignId { get; set; }
     [Parameter]
-    public string locationId { get; set; }
+    public LocationId LocationId { get; set; }
 
     private bool isDataOpen = false;
     private int editItemId;
@@ -79,15 +83,16 @@
     private string newItemName = "";
 
     // Экземпляр класса для работы с БД
-    private DataBaseService db = new();
+    [Inject]
+    private DataBaseService db { get; }
 
     protected override async Task OnInitializedAsync()
     {
-        organizations = db.GetAllOrganizations(Convert.ToInt32(locationId));
+        organizations = db.GetAllOrganizations(LocationId);
 
-        monsters = db.GetAllMonsters(Convert.ToInt32(locationId));
+        monsters = db.GetAllMonsters(LocationId);
 
-        quests = db.GetAllQuests(Convert.ToInt32(locationId));
+        quests = db.GetAllQuests(LocationId);
     }
     private void runPopupWithType(string type)
     {
@@ -96,7 +101,7 @@
     }
     private void addNewItem()
     {
-        if(newItemName.Replace(" ", "").Length <= 3)
+        if (newItemName.Replace(" ", "").Length <= 3)
         {
             js.InvokeVoidAsync("alert", "Поле не заполнено");
             return;
@@ -104,18 +109,18 @@
         switch (newItemType)
         {
             case "organization":
-                db.AddOrganization(new Organization { LocationId = Convert.ToInt32(locationId), Title = newItemName });
-                organizations = db.GetAllOrganizations(Convert.ToInt32(locationId));
+                db.AddOrganization(new Organization { LocationId = Convert.ToInt32(LocationId), Title = newItemName });
+                organizations = db.GetAllOrganizations(Convert.ToInt32(LocationId));
                 break;
             case "monster":
-                db.AddMonster(new Monster { LocationId = Convert.ToInt32(locationId), Name = newItemName });
-                monsters = db.GetAllMonsters(Convert.ToInt32(locationId));
+                db.AddMonster(new Monster { LocationId = Convert.ToInt32(LocationId), Name = newItemName });
+                monsters = db.GetAllMonsters(Convert.ToInt32(LocationId));
                 break;
             case "quest":
-                db.AddQuest(new Quest { LocationId = Convert.ToInt32(locationId), Title = newItemName });
-                quests = db.GetAllQuests(Convert.ToInt32(locationId));
+                db.AddQuest(new Quest { LocationId = Convert.ToInt32(LocationId), Title = newItemName });
+                quests = db.GetAllQuests(Convert.ToInt32(LocationId));
                 break;
-        }    
+        }
         addNewItemPopup = false;
         newItemName = "";
     }
@@ -125,7 +130,7 @@
     private string dataLalelBind = "";
     private string dataTextAreaBind = "";
 
-    public void editAnyItem(int id, string type)
+    public void EditAnyItem(int id, string type)
     {
         isDataOpen = true;
         editItemId = id;
@@ -148,46 +153,66 @@
         }
     }
 
-    public void saveAnyItem()
+    public void SaveAnyItem()
     {
         switch (editItemType)
         {
             case "organization":
-                db.UpdateOrganization(new Organization { Id = editItemId, LocationId = Convert.ToInt32(locationId), Title = dataLalelBind, Description = dataTextAreaBind });
-                organizations = db.GetAllOrganizations(Convert.ToInt32(locationId));
+                db.UpdateOrganization(new Organization
+                    {
+                        Id = editItemId,
+                        LocationId = Convert.ToInt32(LocationId),
+                        Title =
+                    dataLalelBind,
+                        Description = dataTextAreaBind
+                    });
+                organizations = db.GetAllOrganizations(Convert.ToInt32(LocationId));
                 break;
             case "monster":
-                db.UpdateMonster(new Monster { Id = editItemId, LocationId = Convert.ToInt32(locationId), Name = dataLalelBind, Description = dataTextAreaBind });
-                monsters = db.GetAllMonsters(Convert.ToInt32(locationId));
+                db.UpdateMonster(new Monster
+                    {
+                        Id = editItemId,
+                        LocationId = Convert.ToInt32(LocationId),
+                        Name = dataLalelBind,
+                        Description = dataTextAreaBind
+                    });
+                monsters = db.GetAllMonsters(Convert.ToInt32(LocationId));
                 break;
             case "quest":
-                db.UpdateQuest(new Quest { Id = editItemId, LocationId = Convert.ToInt32(locationId), Title = dataLalelBind, Description = dataTextAreaBind });
-                quests = db.GetAllQuests(Convert.ToInt32(locationId));
+                db.UpdateQuest(new Quest
+                    {
+                        Id = editItemId,
+                        LocationId = Convert.ToInt32(LocationId),
+                        Title = dataLalelBind,
+                        Description
+                    = dataTextAreaBind
+                    });
+                quests = db.GetAllQuests(Convert.ToInt32(LocationId));
                 break;
         }
     }
 
-    public void deleteAnyItem()
-    {   
+    public void DeleteAnyItem()
+    {
         isDataOpen = false;
         switch (editItemType)
         {
             case "organization":
                 db.DeleteOrganization(editItemId);
-                organizations = db.GetAllOrganizations(Convert.ToInt32(locationId));
+                organizations = db.GetAllOrganizations(Convert.ToInt32(LocationId));
                 break;
             case "monster":
                 db.DeleteMonster(editItemId);
-                monsters = db.GetAllMonsters(Convert.ToInt32(locationId));
+                monsters = db.GetAllMonsters(Convert.ToInt32(LocationId));
                 break;
             case "quest":
                 db.DeleteQuest(editItemId);
-                quests = db.GetAllQuests(Convert.ToInt32(locationId));
+                quests = db.GetAllQuests(Convert.ToInt32(LocationId));
                 break;
         }
     }
 
-    public List<Organization> organizations = new List<Organization>();
-    public List<Monster> monsters = new List<Monster>();
-    public List<Quest> quests = new List<Quest>();
+    public IEnumerable<Organization> organizations = new List<Organization>();
+    public IEnumerable<Monster> monsters = new List<Monster>();
+    public IEnumerable<Quest> quests = new List<Quest>();
 }

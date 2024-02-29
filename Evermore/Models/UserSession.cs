@@ -1,8 +1,8 @@
-﻿namespace Evermore.DataModels
+﻿namespace Evermore.Models
 {
     public class UserSession
     {
-        public int Id { get; set; }
+        public UserId Id { get; set; }
         public string Username { get; set; }
     }
 }

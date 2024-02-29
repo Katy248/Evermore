@@ -1,20 +1,23 @@
+using Evermore.Data;
 using Evermore.Modules;
-using Evermore.Services;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
-using Microsoft.AspNetCore.Components.Web;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddAuthenticationCore();
 builder.Services.AddRazorPages();
+
 builder.Services.AddServerSideBlazor();
-builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<HttpContextAccessor>();
-builder.Services.AddScoped<ProtectedSessionStorage>();
+
+builder.Services
+    .AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>()
+    .AddHttpContextAccessor()
+    .AddScoped<HttpContextAccessor>()
+    .AddScoped<ProtectedSessionStorage>();
+
+builder.Services.AddDbContext<DatabaseContext>(options =>
+    options.UseSqlite("Data source=db.db"));
 
 var app = builder.Build();
 

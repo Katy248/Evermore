@@ -1,7 +1,4 @@
 ﻿@using System.Security.Claims;
-@using Evermore.DataModels;
-@using Evermore.Modules;
-@using Evermore.Services;
 @using Microsoft.AspNetCore.Authentication;
 @using Microsoft.AspNetCore.Authentication.Cookies;
 @using Microsoft.AspNetCore.Mvc;
@@ -47,7 +44,8 @@
                     <label>Пароль:</label>
                     <input type="password" @bind="userData.Password" />
                     <button @onclick="Authenticate">Войти</button>
-                    <button style="margin-top: 10px;" @onclick='() => {isRegistrationOn = true; userData.Username = "";}'>Регистрация</button>
+                    <button style="margin-top: 10px;"
+                        @onclick='() => {isRegistrationOn = true; userData.Username = "";}'>Регистрация</button>
                 }
                 else
                 {
@@ -59,7 +57,8 @@
                     <label>Пароль:</label>
                     <input @bind="userData.Password" />
                     <button @onclick="Registrate">Создать аккаунт</button>
-                    <button style="margin-top: 10px;"  @onclick="() => isRegistrationOn = false">Войти в существующий аккаунт</button>
+                    <button style="margin-top: 10px;" @onclick="() => isRegistrationOn = false">Войти в существующий
+                        аккаунт</button>
                 }
 
             </div>
@@ -78,14 +77,15 @@
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
-    private DataBaseService db = new();
+    [Inject]
+    public DataBaseService db { get; }
+    private User userData = new User();
 
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
     }
 
-    private UserAccountData userData = new UserAccountData();
     private async Task Registrate()
     {
         if (!isInputAccountDataCorrect())
@@ -96,7 +96,7 @@
             await Authenticate();
             isRegistrationOn = false;
 
-            userData = new UserAccountData();
+            userData = new User();
         }
         else
             await js.InvokeVoidAsync("alert", "Пользователь с такой почтой уже существует");
@@ -107,7 +107,7 @@
         userData.Username = "Null";
         if (!isInputAccountDataCorrect())
             return;
-        var userAccount = db.GetUser(userData.Email, userData.Password);
+        var userAccount = db.GetUser(userData.Email);
         if (userAccount == null || userAccount.Password != userData.Password)
         {
             await js.InvokeVoidAsync("alert", "Неправильная почта или пароль");
@@ -118,7 +118,7 @@
         await customAuthStateProvider.UpdateAuthenticationState(new UserSession
             {
                 Username = userAccount.Username,
-                Id = userAccount.UserId
+                Id = userAccount.Id
             });
         showSignInPopup = false;
         navigationManager.NavigateTo("/", true);
@@ -136,7 +136,9 @@
             js.InvokeVoidAsync("alert", "Неверно введено имя пользователя");
             return false;
         }
-        if (userData.Email.Replace(" ", "").Length <= 3 || userData.Email.IndexOf('@') == -1 || (userData.Email.Substring(userData.Email.IndexOf('@')).Length < 4) || !(userData.Email.Substring(userData.Email.IndexOf('@')).Contains('.')))
+        if (userData.Email.Replace(" ", "").Length <= 3 || userData.Email.IndexOf('@') == -1 ||
+        (userData.Email.Substring(userData.Email.IndexOf('@')).Length < 4) ||
+        !(userData.Email.Substring(userData.Email.IndexOf('@')).Contains('.')))
         {
             js.InvokeVoidAsync("alert", "Неверно введена почта");
             return false;
@@ -156,4 +158,3 @@
         navigationManager.NavigateTo("/", true);
     }
 }
-
